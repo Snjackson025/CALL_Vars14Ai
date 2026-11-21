@@ -1,3 +1,4 @@
+# Triggered run to verify the daily schedule works.
 name: CALL-VARS
 
 # Workflow for CALL-VARS (snjackson044-droid/CALL_Vars14Ai).
