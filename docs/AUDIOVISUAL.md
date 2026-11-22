@@ -40,6 +40,16 @@ and every day at 06:00 UTC. It checks the build succeeds and
 `build/Release/CallVars.exe` exists. It does not run the app — a GUI program
 cannot run headless on the runner.
 
+## Download the app
+
+Each run uploads the built app as an artifact named **CallVars-Windows**:
+open the run on GitHub, scroll to Artifacts, download it, unzip, and run
+`CallVars.exe`. The folder includes the Qt DLLs and plugins the exe needs,
+plus the MSVC runtime, so it runs on a Windows machine without Qt or Visual
+Studio installed. The window, local `/math`, and local `/draft` work without
+an API key; live voice needs an OpenAI API key with Realtime access and
+available credits (paste the key into the app, or set `OPENAI_API_KEY`).
+
 Qt version note: Qt 6.5.3 was tried first and failed — its
 `qvarlengtharray.h` uses Microsoft's `stdext::checked_array_iterator`, which
 the current MSVC compiler removed, so the build failed with 16 `stdext`
