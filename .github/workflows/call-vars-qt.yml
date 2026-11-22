@@ -25,10 +25,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Qt 6.5 (MSVC 2022, Multimedia + WebSockets)
+    - name: Install Qt 6.8 (MSVC 2022, Multimedia + WebSockets)
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.5.3'
+        version: '6.8.3'
         host: 'windows'
         target: 'desktop'
         arch: 'win64_msvc2019_64'
@@ -36,7 +36,7 @@ jobs:
         modules: 'qtmultimedia qtwebsockets'
 
     - name: Configure (CMake)
-      run: cmake -S audiovisual -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.5.3/msvc2019_64"
+      run: cmake -S audiovisual -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.8.3/msvc2019_64"
 
     - name: Build (Release)
       run: cmake --build build --config Release
