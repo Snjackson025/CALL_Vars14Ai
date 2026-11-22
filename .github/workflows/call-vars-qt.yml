@@ -25,18 +25,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Qt 6.8 (MSVC 2022, Multimedia + WebSockets)
-      uses: jurplel/install-qt-action@v4
-      with:
-        version: '6.8.3'
-        host: 'windows'
-        target: 'desktop'
-        arch: 'win64_msvc2019_64'
-        dir: 'C:\Qt'
-        modules: 'qtmultimedia qtwebsockets'
+    # Install Qt directly with aqt (the install-qt-action helper failed to
+    # find the 6.8.3 packages). Qt 6.8.3 has no MSVC2019 binaries, so use
+    # the MSVC2022 arch.
+    - name: Install Qt 6.8.3 (MSVC 2022, Multimedia + WebSockets)
+      run: |
+        python -m pip install --upgrade aqtinstall
+        python -m aqt install-qt windows desktop 6.8.3 win64_msvc2022_64 --outputdir C:\Qt --modules qtmultimedia qtwebsockets
 
     - name: Configure (CMake)
-      run: cmake -S audiovisual -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.8.3/msvc2019_64"
+      run: cmake -S audiovisual -B build -DCMAKE_PREFIX_PATH="C:/Qt/6.8.3/msvc2022_64"
 
     - name: Build (Release)
       run: cmake --build build --config Release
