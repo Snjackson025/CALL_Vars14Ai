@@ -17,6 +17,7 @@ on:
 
 permissions:
   contents: read
+  actions: write
 
 jobs:
   build-qt:
@@ -48,3 +49,14 @@ jobs:
           exit 1
         }
         Write-Host "Build passed: CallVars.exe exists"
+
+    # Gather the Qt DLLs and plugins the exe needs so it runs on a
+    # Windows machine without Qt installed.
+    - name: Collect Qt runtime (windeployqt)
+      run: C:\Qt\6.8.3\msvc2022_64\bin\windeployqt.exe --release --compiler-runtime --no-translations build\Release\CallVars.exe
+
+    - name: Upload CallVars app
+      uses: actions/upload-artifact@v4
+      with:
+        name: CallVars-Windows
+        path: build/Release/
