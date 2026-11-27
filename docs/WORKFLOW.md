@@ -22,6 +22,24 @@ job, **Build and smoke test**, on `ubuntu-latest`:
    menu choice `2`, numbers `3` and `4`, then `0`, and checks the
    output contains `Standard multiplication: 12.0000` and
    `Fox multiplication: 24.0000` (FoxMath doubles the standard result).
+4. **Smoke test 3 — Fox spatial engine (3D-7D)** — runs a scripted
+   session through the new menu options 6–9: shows the spatial view,
+   sets 5D, moves the fox +2 on X, rotates him 90° in the X–Y plane,
+   shows the view again, then shuts down. Checks `Spatial Engine:
+   ONLINE (3D-7D)`, the spatial view, `Dimensional space set to 5D`,
+   `Fox moved.`, `Fox rotated.`, the `F` marker, and that the final
+   fox position reads `2 0 0 0` on the Y axis (move + rotate math:
+   (2,0,0) → 90° in X–Y → (0,2,0)).
+
+## The 3D–7D spatial engine
+
+The fox now has a real position in 3D–7D space, from the XrHolodeck
+engine (`VectorND`, `DimensionEngine`, `FoxSpatialView` — same code as
+`Snjackson025/XRHolodeckProject`). New menu options, added after the
+existing 1–5 so nothing old moved: **6** Fox Spatial View, **7** Move
+Fox in Space (axis 0–6: X Y Z W V U T), **8** Rotate Fox Through
+Dimensions, **9** Set Dimensions (3–7). The fox starts at the origin
+in 7D. Talk, Fox Math, and FoxMail are untouched.
 
 ## Running the same checks locally
 

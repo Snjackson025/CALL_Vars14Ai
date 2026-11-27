@@ -7,6 +7,8 @@
 #include <limits>
 #include <ctime>
 #include <algorithm>
+#include <array>
+#include <cmath>
 
 namespace StandardMath
 {
@@ -38,12 +40,159 @@ struct Message
     std::string timestamp;
 };
 
+// ------------------------------------------------------------
+// 3D-7D SPATIAL ENGINE (from XrHolodeck)
+// ------------------------------------------------------------
+// Gives the fox a real position in 3D-7D space. VectorND holds the
+// seven axes (X Y Z W V U T); DimensionEngine switches the active
+// dimension count (3-7), rotates the fox through any two axes, and
+// projects the 7D position down to 3D for display.
+
+constexpr int MAX_DIMENSIONS = 7;
+constexpr double PI = 3.14159265358979323846;
+
+struct VectorND
+{
+    std::array<double, MAX_DIMENSIONS> c{};
+
+    double& operator[](int i) { return c[i]; }
+    double operator[](int i) const { return c[i]; }
+
+    double magnitude() const
+    {
+        double sum = 0;
+        for (double v : c) sum += v * v;
+        return std::sqrt(sum);
+    }
+
+    double distance(const VectorND& other, int dimensions) const
+    {
+        double sum = 0;
+        for (int i = 0; i < dimensions; ++i)
+        {
+            double d = c[i] - other.c[i];
+            sum += d * d;
+        }
+        return std::sqrt(sum);
+    }
+};
+
+class DimensionEngine
+{
+private:
+    int dimensions = 7;
+
+public:
+    bool setDimensions(int d)
+    {
+        if (d < 3 || d > 7) return false;
+        dimensions = d;
+        return true;
+    }
+
+    int getDimensions() const
+    {
+        return dimensions;
+    }
+
+    void rotatePlane(VectorND& p, int axisA, int axisB,
+                     double degrees) const
+    {
+        if (axisA < 0 || axisB < 0 ||
+            axisA >= dimensions || axisB >= dimensions ||
+            axisA == axisB) return;
+
+        double angle = degrees * PI / 180.0;
+        double cosine = std::cos(angle);
+        double sine = std::sin(angle);
+
+        double a = p[axisA];
+        double b = p[axisB];
+
+        p[axisA] = a * cosine - b * sine;
+        p[axisB] = a * sine + b * cosine;
+    }
+
+    // Project an N-dimensional point into 3D.
+    // Higher dimensions influence the perspective.
+    std::array<double, 3> project(const VectorND& p) const
+    {
+        std::array<double, 3> result = {
+            p[0], p[1], p[2]
+        };
+
+        double perspective = 1.0;
+
+        for (int i = 3; i < dimensions; ++i)
+        {
+            perspective += p[i] * p[i] * 0.02;
+        }
+
+        for (double& v : result)
+            v /= perspective;
+
+        return result;
+    }
+};
+
+// ASCII view of the fox's position in space, projected to 3D.
+class FoxSpatialView
+{
+private:
+    static constexpr int WIDTH = 41;
+    static constexpr int HEIGHT = 15;
+
+public:
+    void Render(const VectorND& position,
+                const DimensionEngine& engine) const
+    {
+        std::vector<std::string> screen(
+            HEIGHT,
+            std::string(WIDTH, ' ')
+        );
+
+        std::array<double, 3> p = engine.project(position);
+
+        double depth = p[2] + 15.0;
+
+        if (depth > 0.1)
+        {
+            int sx = static_cast<int>(
+                WIDTH / 2 + (p[0] * 8.0 / depth)
+            );
+
+            int sy = static_cast<int>(
+                HEIGHT / 2 - (p[1] * 5.0 / depth)
+            );
+
+            if (sx >= 0 && sx < WIDTH &&
+                sy >= 0 && sy < HEIGHT)
+            {
+                screen[sy][sx] = 'F';
+            }
+        }
+
+        std::cout << "\n---------- FOX IN SPACE ----------\n";
+
+        for (const auto& line : screen)
+            std::cout << "|" << line << "|\n";
+
+        std::cout << "----------------------------------\n";
+        std::cout << "Projected 3D: "
+                  << p[0] << " " << p[1] << " " << p[2] << "\n";
+        std::cout << "F = CALL-VARS\n";
+    }
+};
+
 class FoxCharacter
 {
 private:
     std::string name;
     std::string color;
     std::string directive;
+    VectorND position;
+    DimensionEngine dimensions;
+    FoxSpatialView spatialView;
 
 public:
     FoxCharacter()
@@ -67,6 +216,36 @@ public:
     void Speak(const std::string& message)
     {
         std::cout << "\n[CALL-VARS]: " << message << "\n";
+    }
+
+    // 3D-7D spatial presence (XrHolodeck engine).
+    int GetDimensions() const { return dimensions.getDimensions(); }
+
+    bool SetDimensions(int d) { return dimensions.setDimensions(d); }
+
+    bool MoveFox(int axis, double amount)
+    {
+        if (axis < 0 || axis >= MAX_DIMENSIONS)
+            return false;
+        position[axis] += amount;
+        return true;
+    }
+
+    void RotateFox(int axisA, int axisB, double degrees)
+    {
+        dimensions.rotatePlane(position, axisA, axisB, degrees);
+    }
+
+    void ShowSpatialView()
+    {
+        std::cout << "\n===== FOX SPATIAL VIEW (3D-7D) =====\n";
+        std::cout << "Active dimensions: "
+                  << dimensions.getDimensions() << "D\n";
+        std::cout << "Fox position: ";
+        for (int i = 0; i < dimensions.getDimensions(); ++i)
+            std::cout << position[i] << " ";
+        std::cout << "\n";
+        spatialView.Render(position, dimensions);
     }
 
     void Introduce()
@@ -381,6 +560,10 @@ private:
         std::cout << "3. Send Message\n";
         std::cout << "4. View Inbox\n";
         std::cout << "5. Character Information\n";
+        std::cout << "6. Fox Spatial View (3D-7D)\n";
+        std::cout << "7. Move Fox in Space\n";
+        std::cout << "8. Rotate Fox Through Dimensions\n";
+        std::cout << "9. Set Dimensions (3-7)\n";
         std::cout << "0. Shutdown\n";
         std::cout << "=================================\n";
     }
@@ -412,6 +595,113 @@ private:
         }
     }
 
+    void MoveFoxMenu()
+    {
+        int axis;
+        double amount;
+
+        std::cout << "\nAxis (0=X 1=Y 2=Z 3=W 4=V 5=U 6=T): ";
+
+        if (!(std::cin >> axis))
+        {
+            std::cin.clear();
+            std::cin.ignore(
+                std::numeric_limits<std::streamsize>::max(), '\n'
+            );
+            std::cout << "Invalid axis.\n";
+            return;
+        }
+
+        std::cout << "Amount: ";
+
+        if (!(std::cin >> amount))
+        {
+            std::cin.clear();
+            std::cin.ignore(
+                std::numeric_limits<std::streamsize>::max(), '\n'
+            );
+            std::cout << "Invalid amount.\n";
+            return;
+        }
+
+        if (character.MoveFox(axis, amount))
+            std::cout << "Fox moved.\n";
+        else
+            std::cout << "Invalid axis. Use 0-6.\n";
+    }
+
+    void RotateFoxMenu()
+    {
+        int axisA, axisB;
+        double degrees;
+
+        std::cout << "\nFirst axis (0-6): ";
+
+        if (!(std::cin >> axisA))
+        {
+            std::cin.clear();
+            std::cin.ignore(
+                std::numeric_limits<std::streamsize>::max(), '\n'
+            );
+            std::cout << "Invalid axis.\n";
+            return;
+        }
+
+        std::cout << "Second axis (0-6): ";
+
+        if (!(std::cin >> axisB))
+        {
+            std::cin.clear();
+            std::cin.ignore(
+                std::numeric_limits<std::streamsize>::max(), '\n'
+            );
+            std::cout << "Invalid axis.\n";
+            return;
+        }
+
+        std::cout << "Degrees: ";
+
+        if (!(std::cin >> degrees))
+        {
+            std::cin.clear();
+            std::cin.ignore(
+                std::numeric_limits<std::streamsize>::max(), '\n'
+            );
+            std::cout << "Invalid degrees.\n";
+            return;
+        }
+
+        character.RotateFox(axisA, axisB, degrees);
+        std::cout << "Fox rotated.\n";
+    }
+
+    void SetDimensionsMenu()
+    {
+        int d;
+
+        std::cout << "\nDimensions (3-7): ";
+
+        if (!(std::cin >> d))
+        {
+            std::cin.clear();
+            std::cin.ignore(
+                std::numeric_limits<std::streamsize>::max(), '\n'
+            );
+            std::cout << "Invalid number.\n";
+            return;
+        }
+
+        if (character.SetDimensions(d))
+        {
+            std::cout << "Dimensional space set to "
+                      << d << "D\n";
+        }
+        else
+        {
+            std::cout << "Choose between 3D and 7D.\n";
+        }
+    }
+
     void CharacterInformation()
     {
         character.Display();
@@ -439,6 +729,7 @@ public:
         std::cout << "FoxMail Engine: ONLINE\n";
         std::cout << "FoxStorage: ONLINE\n";
         std::cout << "Character Interface: ONLINE\n";
+        std::cout << "Spatial Engine: ONLINE (3D-7D)\n";
 
         std::cout << "\nAll local systems initialized.\n";
     }
@@ -473,6 +764,22 @@ public:
 
             case 5:
                 CharacterInformation();
+                break;
+
+            case 6:
+                character.ShowSpatialView();
+                break;
+
+            case 7:
+                MoveFoxMenu();
+                break;
+
+            case 8:
+                RotateFoxMenu();
+                break;
+
+            case 9:
+                SetDimensionsMenu();
                 break;
 
             case 0:
